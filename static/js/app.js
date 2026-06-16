@@ -21,9 +21,10 @@ const elements = {
     totalCount: document.getElementById('total-count'),
     refreshBtn: document.getElementById('refresh-btn'),
     refreshIcon: document.getElementById('refresh-icon'),
-    themeToggle: document.getElementById('theme-toggle'),
+    themeSwitchCheckbox: document.getElementById('theme-toggle-checkbox'),
     cacheStatus: document.getElementById('cache-status'),
     liveIndicator: document.getElementById('live-indicator'),
+    exportCsvBtn: document.getElementById('export-csv-btn'),
     
     // Modal
     tweetModal: document.getElementById('tweet-modal'),
@@ -55,11 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
+    if (elements.themeSwitchCheckbox) {
+        elements.themeSwitchCheckbox.checked = savedTheme === 'light';
+    }
 }
 
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+function toggleTheme(e) {
+    const isLightMode = e.target.checked;
+    const newTheme = isLightMode ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     showToast(`Switched to ${newTheme} theme`, 'info');
@@ -233,12 +237,45 @@ function renderUpdates() {
                 ${update.description_html}
             </div>
             <div class="card-actions">
-                <button class="btn btn-tweet-share share-action-btn">
+                <button class="btn btn-secondary copy-card-btn" title="Copy text to clipboard">
+                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                    <span>Copy</span>
+                </button>
+                <button class="btn btn-tweet-share share-action-btn" title="Tweet about this update">
                     <i data-lucide="twitter" style="width: 14px; height: 14px;"></i>
                     <span>Select to Tweet</span>
                 </button>
             </div>
         `;
+        
+        // Attach Event to Copy Button
+        const copyBtn = card.querySelector('.copy-card-btn');
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(update.description_text);
+                
+                // Visual feedback on the button
+                const copyIcon = copyBtn.querySelector('i');
+                const copyText = copyBtn.querySelector('span');
+                
+                copyIcon.setAttribute('data-lucide', 'check');
+                copyText.innerText = 'Copied!';
+                copyBtn.classList.add('btn-success-anim');
+                lucide.createIcons();
+                
+                showToast('Update text copied to clipboard!', 'success');
+                
+                setTimeout(() => {
+                    copyIcon.setAttribute('data-lucide', 'copy');
+                    copyText.innerText = 'Copy';
+                    copyBtn.classList.remove('btn-success-anim');
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to copy text', 'error');
+            }
+        });
         
         // Attach Event to Share Button
         card.querySelector('.share-action-btn').addEventListener('click', () => {
@@ -259,8 +296,15 @@ function setupEventListeners() {
         loadUpdates(true);
     });
     
-    // Theme toggle
-    elements.themeToggle.addEventListener('click', toggleTheme);
+    // Theme toggle checkbox
+    if (elements.themeSwitchCheckbox) {
+        elements.themeSwitchCheckbox.addEventListener('change', toggleTheme);
+    }
+    
+    // Export CSV button
+    if (elements.exportCsvBtn) {
+        elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    }
     
     // Search Box Input
     elements.searchInput.addEventListener('input', (e) => {
@@ -494,4 +538,52 @@ function showToast(message, type = 'info') {
             toast.remove();
         });
     }, 4000);
+}
+
+// Export Filtered Updates to CSV
+function exportToCSV() {
+    if (state.filteredUpdates.length === 0) {
+        showToast('No updates available to export', 'warning');
+        return;
+    }
+    
+    const headers = ['Date', 'Type', 'Description'];
+    const rows = state.filteredUpdates.map(up => [
+        up.date,
+        up.type,
+        up.description_text
+    ]);
+    
+    // Format rows to CSV standard (double quotes and quote-escapes)
+    const csvRows = [
+        headers.join(','),
+        ...rows.map(row => row.map(val => {
+            const escaped = ('' + val).replace(/"/g, '""');
+            return `"${escaped}"`;
+        }).join(','))
+    ];
+    
+    // UTF-8 BOM to ensure Excel opens special characters and emojis correctly
+    const csvContent = '\uFEFF' + csvRows.join('\r\n');
+    
+    try {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        
+        // Dynamic file name based on current filters
+        const filterName = state.activeFilter.toLowerCase();
+        link.setAttribute('download', `bigquery_release_notes_${filterName}_export.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Exported ${state.filteredUpdates.length} updates to CSV!`, 'success');
+    } catch (err) {
+        console.error('CSV Export Error:', err);
+        showToast('Failed to export CSV. Please try again.', 'error');
+    }
 }

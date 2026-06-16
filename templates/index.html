@@ -46,10 +46,14 @@
                     <span>Refresh</span>
                 </button>
                 
-                <button id="theme-toggle" class="btn-icon" title="Toggle Dark/Light Mode">
+                <div class="theme-switch-container">
                     <i data-lucide="sun" class="sun-icon"></i>
+                    <label class="switch" for="theme-switch-checkbox">
+                        <input type="checkbox" id="theme-switch-checkbox" title="Toggle Dark/Light Mode">
+                        <span class="slider"></span>
+                    </label>
                     <i data-lucide="moon" class="moon-icon"></i>
-                </button>
+                </div>
             </div>
         </header>
 
@@ -91,7 +95,11 @@
                 </div>
                 
                 <div class="stats-summary" id="stats-summary">
-                    Showing <strong id="visible-count">0</strong> of <strong id="total-count">0</strong> release updates.
+                    <span>Showing <strong id="visible-count">0</strong> of <strong id="total-count">0</strong> release updates.</span>
+                    <button id="export-csv-btn" class="btn btn-secondary btn-sm" title="Export Current Results to CSV">
+                        <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                        <span>Export CSV</span>
+                    </button>
                 </div>
             </section>
 
