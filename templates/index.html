@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Pulse - Keep Up with Google BigQuery Updates</title>
+    <meta name="description" content="A premium release notes tracker for Google Cloud BigQuery. Search, filter, and easily share updates to X (Twitter) with a single click.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="bg-gradient-glow"></div>
+    
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i data-lucide="database" class="icon-pulse"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery <span>Release Pulse</span></h1>
+                    <p class="subtitle">Real-time Google Cloud Feed Parser & ShareHub</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <span class="status-indicator live" id="live-indicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="cache-status">Loading feed...</span>
+                </span>
+                
+                <button id="refresh-btn" class="btn btn-secondary" title="Force Refresh Feed">
+                    <i data-lucide="refresh-cw" id="refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+                
+                <button id="theme-toggle" class="btn-icon" title="Toggle Dark/Light Mode">
+                    <i data-lucide="sun" class="sun-icon"></i>
+                    <i data-lucide="moon" class="moon-icon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard">
+            <!-- Filter & Search Panel -->
+            <section class="control-panel">
+                <div class="search-box">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search updates, keywords, features..." autocomplete="off">
+                    <button id="search-clear" class="btn-clear" style="display: none;">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+                
+                <div class="filters-container">
+                    <div class="filter-label">Filter by type:</div>
+                    <div class="filter-chips" id="filter-chips">
+                        <button class="chip active" data-type="all" id="chip-all">
+                            <span>All</span> <span class="chip-count" id="count-all">0</span>
+                        </button>
+                        <button class="chip" data-type="Feature" id="chip-feature">
+                            <span class="dot dot-feature"></span>
+                            <span>Features</span> <span class="chip-count" id="count-feature">0</span>
+                        </button>
+                        <button class="chip" data-type="Changed" id="chip-changed">
+                            <span class="dot dot-changed"></span>
+                            <span>Changes</span> <span class="chip-count" id="count-changed">0</span>
+                        </button>
+                        <button class="chip" data-type="Deprecated" id="chip-deprecated">
+                            <span class="dot dot-deprecated"></span>
+                            <span>Deprecated</span> <span class="chip-count" id="count-deprecated">0</span>
+                        </button>
+                        <button class="chip" data-type="Issue" id="chip-issue">
+                            <span class="dot dot-issue"></span>
+                            <span>Issues</span> <span class="chip-count" id="count-issue">0</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="stats-summary" id="stats-summary">
+                    Showing <strong id="visible-count">0</strong> of <strong id="total-count">0</strong> release updates.
+                </div>
+            </section>
+
+            <!-- Release Notes Feed Section -->
+            <section class="feed-section">
+                <!-- Skeleton Loader -->
+                <div class="skeleton-container" id="skeleton-loader">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="empty-state" style="display: none;">
+                    <i data-lucide="search-code" class="empty-icon"></i>
+                    <h3>No matching release notes found</h3>
+                    <p>Try refining your search query or changing filters.</p>
+                </div>
+
+                <!-- Feed Cards Grid -->
+                <div class="updates-grid" id="updates-grid"></div>
+            </section>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer-bar">
+            <p>BigQuery Release Pulse © 2026. Data dynamically fetched from the Google Cloud BigQuery RSS Feed.</p>
+        </footer>
+    </div>
+
+    <!-- Twitter / X Share Modal -->
+    <div class="modal-overlay" id="tweet-modal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <i data-lucide="twitter" class="x-icon"></i>
+                    <h2>Compose Post for X</h2>
+                </div>
+                <button class="btn-icon" id="close-modal-btn">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Selected Note Context -->
+                <div class="original-note-preview">
+                    <div class="preview-header">
+                        <span class="badge" id="preview-badge">Feature</span>
+                        <span class="date" id="preview-date">June 15, 2026</span>
+                    </div>
+                    <p class="preview-text" id="preview-text-content"></p>
+                </div>
+                
+                <!-- Tweet Editor -->
+                <div class="editor-container">
+                    <label for="tweet-textarea">Craft your post:</label>
+                    <textarea id="tweet-textarea" rows="6" maxlength="500" placeholder="What's happening?"></textarea>
+                    
+                    <div class="editor-footer">
+                        <!-- Quick Hashtags -->
+                        <div class="quick-tags">
+                            <span class="tag-label">Add Tags:</span>
+                            <button class="hashtag-btn" data-tag="#BigQuery">#BigQuery</button>
+                            <button class="hashtag-btn" data-tag="#GoogleCloud">#GoogleCloud</button>
+                            <button class="hashtag-btn" data-tag="#GCP">#GCP</button>
+                            <button class="hashtag-btn" data-tag="#DataEngineering">#DataEng</button>
+                        </div>
+                        
+                        <!-- Char Counter -->
+                        <div class="char-count-wrapper">
+                            <span id="tweet-char-count">0</span>/280
+                        </div>
+                    </div>
+                    
+                    <div class="character-warning" id="char-warning" style="display: none;">
+                        <i data-lucide="alert-triangle"></i>
+                        <span>Over X standard character limit (280). Will require premium subscription to post.</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="copy-tweet-btn">
+                    <i data-lucide="copy" id="copy-icon"></i>
+                    <span id="copy-btn-text">Copy Text</span>
+                </button>
+                <button class="btn btn-primary" id="send-tweet-btn">
+                    <i data-lucide="send"></i>
+                    <span>Share on X</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
